@@ -127,6 +127,8 @@ button:focus-visible{outline:3px solid var(--red);outline-offset:2px}
     <label class="sw">틀리면 바로 알려주기<input type="checkbox" id="chk"></label>
     <div class="grp"><b>틀리면 게임 끝</b><div class="chips" id="limits"></div>
       <p class="note">정한 횟수만큼 틀리면 게임이 끝나요. 아무거나 찍어 보지 않게 도와줘요. 바꾸면 새 게임이 시작돼요.</p></div>
+    <div class="grp"><b>힌트 개수</b><div class="chips" id="hintOpts"></div>
+      <p class="note">한 판에 쓸 수 있는 힌트 수예요. 0번이면 힌트 없이 풀어요.</p></div>
   </div>
 </div>
 <script>
@@ -145,7 +147,7 @@ const SH=[
  ['#13b5c8','<path d="M37 10h26v27h27v26H63v27H37V63H10V37h27z"/>','하늘색 십자']];
 const svg=v=>`<svg viewBox="0 0 100 100" fill="${SH[v-1][0]}" aria-hidden="true">${SH[v-1][1]}</svg>`;
 const HEART='<path d="M50 88C18 66 6 46 12 29 18 12 41 10 50 29 59 10 82 12 88 29 94 46 82 66 50 88Z"/>';
-let S={n:4,lv:1,mode:'shape',check:true,limit:0};
+let S={n:4,lv:1,mode:'shape',check:true,limit:0,hintMax:3};
 try{Object.assign(S,JSON.parse(localStorage.getItem('kidSudoku')||'{}'))}catch(e){}
 const save=()=>{try{localStorage.setItem('kidSudoku',JSON.stringify(S))}catch(e){}};
 let n,br,bc,peers,sol,giv,start,cur,notes,hnt,sel=-1,undo=[],t0=0,hints=0,miss=0,done=false,over=false,memo=false,reveal=false,shakeAt=-1;
@@ -215,7 +217,8 @@ function render(){
   const what=S.mode==='shape'?'같은 모양':'같은 숫자';
   $('#rule').textContent=br?`가로줄, 세로줄, 굵은 선 상자 안에 ${what}이 두 번 나오지 않게 채워요.`:`가로줄과 세로줄에 ${what}이 두 번 나오지 않게 채워요.`;
   $('#memo').setAttribute('aria-pressed',memo);$('#memoNote').hidden=!memo;
-  $('#check').hidden=S.check;$('#hint').disabled=done||over;
+  $('#check').hidden=S.check;const hl=Math.max(0,S.hintMax-hints);$('#hint').textContent=`힌트 ${hl}`;$('#hint').disabled=done||over||hl<=0;
+  $('#hintOpts').innerHTML=range(11).map(v=>`<button class="chip" data-h="${v}" aria-pressed="${S.hintMax===v}">${v}번</button>`).join('');
   $('#levels').innerHTML=LV.map((l,i)=>`<button class="chip" data-l="${i}" aria-pressed="${S.lv===i}">${l[0]}</button>`).join('');
   $('#sizes').innerHTML=range(8).map(x=>`<button class="chip" data-n="${x+2}" aria-pressed="${S.n===x+2}">${x+2}×${x+2}</button>`).join('');
   $('#modes').innerHTML=[['shape','색깔 모양'],['num','숫자']].map(m=>`<button class="chip" data-m="${m[0]}" aria-pressed="${S.mode===m[0]}">${m[1]}</button>`).join('');
@@ -251,7 +254,7 @@ $('#erase').onclick=()=>{if(sel<0||giv[sel]||done||over)return;
   if(cur[sel])put(sel,0);else if(notes[sel]){snap();notes[sel]=0;render()}};
 $('#undo').onclick=()=>{if(done||over)return;const u=undo.pop();if(!u)return;[cur,notes,hnt,sel]=u;render()};
 $('#memo').onclick=()=>{memo=!memo;render()};
-$('#hint').onclick=()=>{if(done||over)return;let i=sel;
+$('#hint').onclick=()=>{if(done||over||hints>=S.hintMax)return;let i=sel;
   if(i<0||giv[i]||cur[i]===sol[i]){const w=shuffle(range(n*n).filter(k=>cur[k]!==sol[k]));i=w.length?w[0]:-1}
   if(i<0)return;hints++;sel=i;put(i,sol[i],true)};
 $('#check').onclick=()=>{reveal=true;render()};
@@ -266,6 +269,7 @@ window.appBack=()=>{if(veil.classList.contains('on')){closeSet();return true}ret
 $('#sizes').addEventListener('click',e=>{const b=e.target.closest('[data-n]');if(b){S.n=+b.dataset.n;save();newGame()}});
 $('#modes').addEventListener('click',e=>{const b=e.target.closest('[data-m]');if(b){S.mode=b.dataset.m;save();render()}});
 $('#limits').addEventListener('click',e=>{const b=e.target.closest('[data-x]');if(b){S.limit=+b.dataset.x;save();newGame()}});
+$('#hintOpts').addEventListener('click',e=>{const b=e.target.closest('[data-h]');if(b){S.hintMax=+b.dataset.h;save();render()}});
 $('#chk').onchange=e=>{S.check=e.target.checked;save();render()};
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&veil.classList.contains('on')){closeSet();return}
@@ -276,7 +280,7 @@ document.addEventListener('keydown',e=>{
   else{const mv={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]}[e.key];
     if(mv){sel=((r+mv[0]+n)%n)*n+(c+mv[1]+n)%n;render();e.preventDefault();
       const f=document.querySelector(`.c[data-i="${sel}"]`);if(f)f.focus()}}});
-if(!(S.n>=2&&S.n<=9))S.n=4;if(!(S.lv>=0&&S.lv<LV.length))S.lv=1;if(![0,3,4,5,6,7,8,9,10].includes(S.limit))S.limit=0;
+if(!(S.n>=2&&S.n<=9))S.n=4;if(!(S.lv>=0&&S.lv<LV.length))S.lv=1;if(![0,3,4,5,6,7,8,9,10].includes(S.limit))S.limit=0;if(!(S.hintMax>=0&&S.hintMax<=10))S.hintMax=3;
 newGame();
 }
 </script>
