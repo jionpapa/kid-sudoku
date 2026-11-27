@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>꼬마 스도쿠</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+/* VOICE: 놀이방 장난감처럼 밝고 다정하게, 글은 짧게
+   IDEA: 노란 놀이 매트 위에 놓인 원목 퍼즐 판
+   PICTURE: 굵은 테두리의 퍼즐 판 자체 — 색깔 모양 조각 또는 숫자
+   COLOUR and TYPE: 햇살 노랑 바탕, 흰 판, 토마토 빨강 포인트, 바다색 입력 / Jua + Gowun Dodum
+   LAYOUT: 제목+설정 버튼 → 판 → 패드·도구 → 난이도; 설정은 아래에서 올라오는 시트 */
+:root{color-scheme:light;--bg:#ffd23f;--ink:#2b2140;--board:#fffdf6;--line:#2b2140;--thin:#e3d9c2;--given:#fff2c4;
+--rel:#fff7dc;--grel:#ffeaa6;--same:#ffe9a0;--sel:#ffe07a;--blue:#0f7aa3;--red:#ef476f;--soft:#fff8e1;--muted:#6b5d45;
+--shadow:#d9a400;--badbg:#ffe1e8;--veil:rgba(255,253,246,.93)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;--bg:#1c2042;--ink:#f4f0e4;--board:#2a2f58;--line:#0f1230;--thin:#434a7c;
+--given:#363c6c;--rel:#30366a;--grel:#3b4277;--same:#424a88;--sel:#4b5398;--blue:#7fd3f2;--soft:#262b52;--muted:#b9b4d6;--shadow:#0c0f26;--badbg:#5a2a45;--veil:rgba(28,32,66,.93)}}
+:root[data-theme=dark]{color-scheme:dark;--bg:#1c2042;--ink:#f4f0e4;--board:#2a2f58;--line:#0f1230;--thin:#434a7c;
+--given:#363c6c;--rel:#30366a;--grel:#3b4277;--same:#424a88;--sel:#4b5398;--blue:#7fd3f2;--soft:#262b52;--muted:#b9b4d6;--shadow:#0c0f26;--badbg:#5a2a45;--veil:rgba(28,32,66,.93)}
+*{box-sizing:border-box;min-width:0}
+html{-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Gowun Dodum",system-ui,sans-serif;overflow-x:clip}
+h1,h2,.jua,button{font-family:Jua,"Gowun Dodum",system-ui,sans-serif;font-weight:400}
+.top{max-width:560px;margin:auto;padding:18px 16px 4px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+h1{font-size:clamp(32px,8vw,44px);line-height:1.05;margin:0}
+.gear{display:flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border:3px solid var(--line);border-radius:999px;background:var(--board);color:var(--ink);font-size:18px;cursor:pointer;box-shadow:0 4px 0 var(--shadow)}
+.gear svg{width:22px;height:22px}
+.rule{max-width:560px;margin:auto;padding:0 16px;font-size:16px}
+main{max-width:560px;margin:auto;padding:10px 16px 40px;display:grid;gap:12px}
+.status{display:flex;justify-content:space-between;align-items:center;gap:8px;font-family:Jua,sans-serif;font-size:18px;flex-wrap:wrap}
+.hearts{display:flex;gap:2px;align-items:center}.hearts svg{width:18px;height:18px}
+.wrap{position:relative}
+.board{--cs:calc(min(100vw - 32px,528px)/var(--n));display:grid;grid-template-columns:repeat(var(--n),1fr);aspect-ratio:1;
+background:var(--board);border:5px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 10px 0 var(--shadow)}
+.c{appearance:none;border:0;margin:0;padding:0;background:transparent;color:var(--blue);display:grid;place-items:center;
+border-right:2px solid var(--thin);border-bottom:2px solid var(--thin);font-size:calc(var(--cs)*.56);line-height:1;cursor:pointer;position:relative;overflow:hidden}
+.c.bR{border-right:4px solid var(--line)}.c.bB{border-bottom:4px solid var(--line)}.c.eR{border-right:0}.c.eB{border-bottom:0}
+.c.g{background:var(--given);color:var(--ink);cursor:default}
+.c.rel{background:var(--rel)}.c.g.rel{background:var(--grel)}.c.same{background:var(--same)}
+.c.sel{background:var(--sel);box-shadow:inset 0 0 0 3px var(--ink)}
+.c.bad{color:var(--red);background:var(--badbg)}
+.c.h::after{content:"";position:absolute;right:12%;top:12%;width:max(5px,calc(var(--cs)*.09));aspect-ratio:1;border-radius:50%;background:#06a77d}
+.c>svg{width:70%;height:70%;filter:drop-shadow(0 2px 0 rgba(0,0,0,.2))}
+.c.bad>svg{opacity:.55;outline:3px dashed var(--red);outline-offset:2px;border-radius:6px}
+.nt{position:absolute;inset:6%;display:grid;grid-template-columns:repeat(var(--nc),1fr);grid-template-rows:repeat(var(--nr),1fr);place-items:center;
+color:var(--muted);font-size:calc(var(--cs)*.78/var(--nc));line-height:1}
+.nt svg{width:78%;height:78%}
+.c:focus-visible{outline:3px solid var(--red);outline-offset:-4px}
+.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.pad{display:grid;grid-template-columns:repeat(var(--pc),minmax(0,1fr));gap:8px}
+.k{min-height:56px;border:3px solid transparent;border-radius:14px;background:var(--board);color:var(--ink);font-size:28px;line-height:1;
+box-shadow:0 4px 0 var(--shadow);cursor:pointer;display:grid;place-items:center;position:relative}
+.memo .k{border:3px dashed var(--red)}
+.k svg{width:34px;height:34px}
+.k small{position:absolute;right:6px;bottom:3px;font:13px "Gowun Dodum",sans-serif;color:var(--muted)}
+.k.out{opacity:.35}
+.acts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.btn{min-height:48px;border:0;border-radius:14px;background:var(--ink);color:var(--bg);font-size:19px;line-height:1;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.25)}
+.btn.alt{background:var(--board);color:var(--ink);box-shadow:0 4px 0 var(--shadow)}
+.btn[aria-pressed=true]{background:var(--red);color:#fff}
+.btn:disabled{opacity:.4}
+.k:active,.btn:active,.chip:active,.gear:active{transform:translateY(3px)}
+button:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.card{background:var(--soft);border-radius:20px;padding:16px;display:grid;gap:12px;border:3px solid var(--line);margin-top:6px}
+.card b,.grp>b{font-family:Jua,sans-serif;font-weight:400;font-size:19px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{min-height:44px;min-width:52px;padding:0 12px;border:2px solid var(--line);border-radius:999px;background:var(--board);color:var(--ink);font-size:18px;line-height:1;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--red);border-color:var(--red);color:#fff}
+.note{margin:0;font-size:14px;color:var(--muted)}
+.sw{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;font-family:Jua,sans-serif;font-size:19px;cursor:pointer}
+.sw input{appearance:none;-webkit-appearance:none;width:52px;height:30px;border-radius:99px;background:var(--thin);position:relative;cursor:pointer;flex:none;margin:0}
+.sw input::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .2s}
+.sw input:checked{background:#06a77d}.sw input:checked::after{left:25px}
+.veil{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center;z-index:9}
+.veil.on{display:flex}
+.sheet{width:min(100%,560px);max-height:88vh;overflow:auto;background:var(--soft);border-radius:24px 24px 0 0;padding:20px 18px 28px;display:grid;gap:18px;border:3px solid var(--line);border-bottom:0}
+.sheet .hd{display:flex;justify-content:space-between;align-items:center}
+.sheet h2{font-size:28px;margin:0;line-height:1.1}
+.grp{display:grid;gap:8px}
+.ov{position:absolute;inset:0;display:none;place-items:center;text-align:center;background:var(--veil);border-radius:18px;padding:16px}
+.ov.on{display:grid}
+.ov h2{font-size:clamp(34px,9vw,50px);margin:0;line-height:1.05;color:var(--red)}
+.ov p{margin:8px 0 16px;font-size:17px}
+.ov .row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.ov .btn{padding:0 22px}
+.star{position:absolute;width:28px;height:28px;animation:pop 1.1s ease-out both}
+@keyframes pop{0%{transform:scale(0) rotate(0)}60%{transform:scale(1.3) rotate(140deg)}100%{transform:scale(1) rotate(180deg)}}
+@media(prefers-reduced-motion:reduce){.star,.shake{animation:none}.sw input::after{transition:none}}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>꼬마 스도쿠</h1>
+  <button class="gear" id="openSet" aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>설정</button>
+</div>
+<p class="rule" id="rule"></p>
+<main>
+  <div class="status"><span id="info"></span><span class="hearts" id="hearts"></span><span id="time">0:00</span></div>
+  <div class="wrap">
+    <div class="board" id="board" role="grid" aria-label="스도쿠 판"></div>
+    <div class="ov" id="ov" aria-live="polite"></div>
+  </div>
+  <div class="pad" id="pad"></div>
+  <div class="acts">
+    <button class="btn alt" id="undo">되돌리기</button>
+    <button class="btn alt" id="erase">지우기</button>
+    <button class="btn alt" id="memo" aria-pressed="false">메모</button>
+    <button class="btn" id="hint">힌트</button>
+  </div>
+  <p class="note" id="memoNote" hidden>메모 중이에요. 헷갈리는 답을 칸에 작게 적어 둘 수 있어요. 한 번 더 누르면 지워져요.</p>
+  <button class="btn alt" id="check" hidden>다 했는지 검사하기</button>
+  <section class="card" aria-label="난이도">
+    <b>난이도</b>
+    <div class="chips" id="levels"></div>
+    <button class="btn" id="new">새 게임 시작</button>
+  </section>
+</main>
+<div class="veil" id="veil">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="setT">
+    <div class="hd"><h2 id="setT">설정</h2><button class="chip" id="closeSet">닫기</button></div>
+    <div class="grp"><b>판 크기</b><div class="chips" id="sizes"></div>
+      <p class="note">4·6·8·9칸 판은 굵은 상자 안에서도 겹치면 안 돼요. 2·3·5·7칸 판은 가로·세로 줄만 맞추면 돼요. 바꾸면 새 게임이 시작돼요.</p></div>
+    <div class="grp"><b>무엇으로 채울까요?</b><div class="chips" id="modes"></div></div>
+    <label class="sw">틀리면 바로 알려주기<input type="checkbox" id="chk"></label>
+    <div class="grp"><b>틀리면 게임 끝</b><div class="chips" id="limits"></div>
+      <p class="note">정한 횟수만큼 틀리면 게임이 끝나요. 아무거나 찍어 보지 않게 도와줘요. 바꾸면 새 게임이 시작돼요.</p></div>
+  </div>
+</div>
+<script>
+{
+const $=s=>document.querySelector(s);
+const LV=[['아기',0.2],['쉬움',0.35],['보통',0.5],['어려움',0.6],['도전',0.75]];
+const SH=[
+ ['#ef476f','<circle cx="50" cy="50" r="38"/>','빨간 동그라미'],
+ ['#118ab2','<rect x="14" y="14" width="72" height="72" rx="12"/>','파란 네모'],
+ ['#f9a620','<path d="M50 10 90 86H10Z" stroke="#f9a620" stroke-width="8" stroke-linejoin="round"/>','주황 세모'],
+ ['#8e5bd8','<path d="M50 6l12.6 27.7 30.2 3.4-22.5 20.4 6.3 29.8L50 72.1 23.4 87.3l6.3-29.8L7.2 37.1l30.2-3.4z"/>','보라 별'],
+ ['#ff5fa2','<path d="M50 88C18 66 6 46 12 29 18 12 41 10 50 29 59 10 82 12 88 29 94 46 82 66 50 88Z"/>','분홍 하트'],
+ ['#06a77d','<path d="M50 6 90 50 50 94 10 50Z"/>','초록 마름모'],
+ ['#3d55c4','<path d="M60 8A42 42 0 1 0 92 70 34 34 0 1 1 60 8Z"/>','남색 달'],
+ ['#ff7f11','<path d="M50 6 88 28V72L50 94 12 72V28Z"/>','귤색 육각형'],
+ ['#13b5c8','<path d="M37 10h26v27h27v26H63v27H37V63H10V37h27z"/>','하늘색 십자']];
+const svg=v=>`<svg viewBox="0 0 100 100" fill="${SH[v-1][0]}" aria-hidden="true">${SH[v-1][1]}</svg>`;
+const HEART='<path d="M50 88C18 66 6 46 12 29 18 12 41 10 50 29 59 10 82 12 88 29 94 46 82 66 50 88Z"/>';
+let S={n:4,lv:1,mode:'shape',check:true,limit:0};
+try{Object.assign(S,JSON.parse(localStorage.getItem('kidSudoku')||'{}'))}catch(e){}
+const save=()=>{try{localStorage.setItem('kidSudoku',JSON.stringify(S))}catch(e){}};
+let n,br,bc,peers,sol,giv,start,cur,notes,hnt,sel=-1,undo=[],t0=0,hints=0,miss=0,done=false,over=false,memo=false,reveal=false,shakeAt=-1;
+const range=k=>[...Array(k).keys()];
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const boxOf=k=>({4:[2,2],6:[2,3],8:[2,4],9:[3,3]})[k]||null;
+const lbl=v=>S.mode==='shape'?SH[v-1][2]:String(v);
+const show=v=>S.mode==='shape'?svg(v):v;
+function setup(){
+  const b=boxOf(n);br=b?b[0]:0;bc=b?b[1]:0;peers=[];
+  for(let i=0;i<n*n;i++){const r=i/n|0,c=i%n,p=new Set();
+    for(let k=0;k<n;k++){p.add(r*n+k);p.add(k*n+c)}
+    if(b){const r0=r-r%br,c0=c-c%bc;for(let y=0;y<br;y++)for(let x=0;x<bc;x++)p.add((r0+y)*n+c0+x)}
+    p.delete(i);peers.push([...p])}
+}
+function cand(g,i){let m=(1<<(n+1))-2;for(const p of peers[i])m&=~(1<<g[p]);return m}
+const pop=m=>{let k=0;while(m){m&=m-1;k++}return k};
+function pick(g){let best=-1,bm=0,bk=99;
+  for(let i=0;i<g.length;i++)if(!g[i]){const m=cand(g,i),k=pop(m);if(!k)return[-2,0];if(k<bk){bk=k;best=i;bm=m;if(k===1)break}}
+  return[best,bm]}
+function fill(g){const[i,m]=pick(g);if(i===-1)return true;if(i===-2)return false;
+  for(const v of shuffle(range(n).map(x=>x+1)))if(m>>v&1){g[i]=v;if(fill(g))return true}
+  g[i]=0;return false}
+function count(g,lim){let c=0;
+  const rec=()=>{const[i,m]=pick(g);if(i===-2)return;if(i===-1){c++;return}
+    for(let v=1;v<=n&&c<lim;v++)if(m>>v&1){g[i]=v;rec()}g[i]=0};
+  rec();return c}
+function newGame(){
+  n=S.n;setup();const g=new Array(n*n).fill(0);fill(g);sol=g.slice();
+  const target=Math.max(1,Math.round(n*n*LV[S.lv][1]));let rem=0;
+  for(const i of shuffle(range(n*n))){if(rem>=target)break;const v=g[i];g[i]=0;
+    if(count(g.slice(),2)===1)rem++;else g[i]=v}
+  giv=g.map(v=>v>0);start=g;hints=0;
+  $('#board').style.setProperty('--n',n);
+  const nc=Math.ceil(Math.sqrt(n));$('#board').style.setProperty('--nc',nc);$('#board').style.setProperty('--nr',Math.ceil(n/nc));
+  $('#pad').style.setProperty('--pc',n<=5?n:Math.ceil(n/2));
+  restart();
+}
+function restart(){
+  cur=start.slice();notes=new Array(n*n).fill(0);hnt=new Array(n*n).fill(false);
+  sel=cur.indexOf(0);undo=[];miss=0;done=false;over=false;reveal=false;t0=Date.now();
+  $('#ov').classList.remove('on');render();tick();
+}
+const isBad=i=>cur[i]&&!giv[i]&&cur[i]!==sol[i]&&(S.check||reveal);
+function cellHTML(v,i){
+  if(v)return show(v);
+  if(!notes[i])return '';
+  return `<span class="nt" aria-hidden="true">${range(n).map(x=>`<span>${notes[i]>>(x+1)&1?show(x+1):''}</span>`).join('')}</span>`;
+}
+function render(){
+  const sr=sel>=0?sel/n|0:-1,sc=sel>=0?sel%n:-1,sv=sel>=0?cur[sel]:0;
+  const sameBox=i=>br&&sel>=0&&((i/n|0)-(i/n|0)%br)===(sr-sr%br)&&(i%n-i%n%bc)===(sc-sc%bc);
+  $('#board').innerHTML=cur.map((v,i)=>{const r=i/n|0,c=i%n,k=['c'];
+    if(giv[i])k.push('g');if(hnt[i])k.push('h');
+    if(c===n-1)k.push('eR');else if(bc&&(c+1)%bc===0)k.push('bR');
+    if(r===n-1)k.push('eB');else if(br&&(r+1)%br===0)k.push('bB');
+    if(i===sel)k.push('sel');else if(sv&&v===sv)k.push('same');else if(r===sr||c===sc||sameBox(i))k.push('rel');
+    if(isBad(i))k.push('bad');if(i===shakeAt)k.push('shake');
+    const memoTxt=!v&&notes[i]?`, 메모 ${range(n).filter(x=>notes[i]>>(x+1)&1).map(x=>lbl(x+1)).join(' ')}`:'';
+    return `<button class="${k.join(' ')}" data-i="${i}" role="gridcell" aria-label="${r+1}번째 줄 ${c+1}번째 칸, ${v?lbl(v):'빈칸'}${memoTxt}">${cellHTML(v,i)}</button>`}).join('');
+  shakeAt=-1;
+  $('#pad').classList.toggle('memo',memo);
+  $('#pad').innerHTML=range(n).map(x=>{const v=x+1,left=Math.max(0,n-cur.filter(y=>y===v).length);
+    return `<button class="k${left?'':' out'}" data-v="${v}" aria-label="${lbl(v)} ${memo?'메모':'넣기'}, ${left}개 남음">${show(v)}<small>${left}</small></button>`}).join('');
+  $('#info').textContent=`${n}×${n} · ${LV[S.lv][0]}${hints?` · 힌트 ${hints}`:''}`;
+  $('#hearts').innerHTML=S.limit?range(S.limit).map(k=>`<svg viewBox="0 0 100 100" fill="${k<S.limit-miss?'#ef476f':'#9a92a8'}" opacity="${k<S.limit-miss?1:.45}" aria-hidden="true">${HEART}</svg>`).join('')+`<span style="margin-left:4px;font-size:15px">${S.limit-miss}번 남음</span>`:'';
+  const what=S.mode==='shape'?'같은 모양':'같은 숫자';
+  $('#rule').textContent=br?`가로줄, 세로줄, 굵은 선 상자 안에 ${what}이 두 번 나오지 않게 채워요.`:`가로줄과 세로줄에 ${what}이 두 번 나오지 않게 채워요.`;
+  $('#memo').setAttribute('aria-pressed',memo);$('#memoNote').hidden=!memo;
+  $('#check').hidden=S.check;$('#hint').disabled=done||over;
+  $('#levels').innerHTML=LV.map((l,i)=>`<button class="chip" data-l="${i}" aria-pressed="${S.lv===i}">${l[0]}</button>`).join('');
+  $('#sizes').innerHTML=range(8).map(x=>`<button class="chip" data-n="${x+2}" aria-pressed="${S.n===x+2}">${x+2}×${x+2}</button>`).join('');
+  $('#modes').innerHTML=[['shape','색깔 모양'],['num','숫자']].map(m=>`<button class="chip" data-m="${m[0]}" aria-pressed="${S.mode===m[0]}">${m[1]}</button>`).join('');
+  $('#limits').innerHTML=[0,3,4,5,6,7,8,9,10].map(v=>`<button class="chip" data-x="${v}" aria-pressed="${S.limit===v}">${v?v+'번':'끔'}</button>`).join('');
+  $('#chk').checked=S.check;
+}
+const snap=()=>undo.push([cur.slice(),notes.slice(),hnt.slice(),sel]);
+function put(i,v,isHint){
+  if(i<0||giv[i]||done||over)return;
+  if(memo&&!isHint){if(!v||cur[i])return;snap();notes[i]^=1<<v;render();return}
+  if(cur[i]===v&&!isHint)return;
+  snap();cur[i]=v;hnt[i]=!!isHint;notes[i]=0;reveal=false;
+  if(v){for(const p of peers[i])notes[p]&=~(1<<v);
+    if(v!==sol[i]){miss++;if(S.check||S.limit)shakeAt=i;
+      if(S.limit&&miss>=S.limit){render();lose();return}}}
+  if(cur.every((x,k)=>x===sol[k]))win();
+  render();
+}
+const fmt=s=>`${s/60|0}:${String(s%60).padStart(2,'0')}`;
+function win(){done=true;const s=Math.round((Date.now()-t0)/1000);
+  $('#ov').innerHTML=range(14).map(k=>`<svg class="star" viewBox="0 0 100 100" fill="${SH[k%9][0]}" style="left:${8+Math.random()*80}%;top:${6+Math.random()*80}%;animation-delay:${k*.06}s" aria-hidden="true">${SH[3][1]}</svg>`).join('')+
+  `<div style="position:relative"><h2>참 잘했어요!</h2><p>${n}×${n} ${LV[S.lv][0]} 판을 ${fmt(s)} 만에 다 풀었어요${hints?` (힌트 ${hints}번)`:''}.</p><div class="row"><button class="btn" data-a="new">한 판 더 하기</button></div></div>`;
+  $('#ov').classList.add('on')}
+function lose(){over=true;
+  $('#ov').innerHTML=`<div><h2>아쉬워요!</h2><p>${S.limit}번 틀려서 이번 판은 끝났어요.<br>천천히 생각하면 할 수 있어요.</p><div class="row"><button class="btn alt" data-a="retry">같은 판 다시</button><button class="btn" data-a="new">새 게임</button></div></div>`;
+  $('#ov').classList.add('on')}
+$('#ov').addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a)return;if(a.dataset.a==='new')newGame();else restart()});
+let tm=null;function tick(){clearInterval(tm);$('#time').textContent='0:00';
+  tm=setInterval(()=>{if(!done&&!over)$('#time').textContent=fmt(Math.round((Date.now()-t0)/1000))},1000)}
+$('#board').addEventListener('click',e=>{const b=e.target.closest('.c');if(!b)return;sel=+b.dataset.i;render()});
+$('#pad').addEventListener('click',e=>{const b=e.target.closest('.k');if(b)put(sel,+b.dataset.v)});
+$('#erase').onclick=()=>{if(sel<0||giv[sel]||done||over)return;
+  if(cur[sel])put(sel,0);else if(notes[sel]){snap();notes[sel]=0;render()}};
+$('#undo').onclick=()=>{if(done||over)return;const u=undo.pop();if(!u)return;[cur,notes,hnt,sel]=u;render()};
+$('#memo').onclick=()=>{memo=!memo;render()};
+$('#hint').onclick=()=>{if(done||over)return;let i=sel;
+  if(i<0||giv[i]||cur[i]===sol[i]){const w=shuffle(range(n*n).filter(k=>cur[k]!==sol[k]));i=w.length?w[0]:-1}
+  if(i<0)return;hints++;sel=i;put(i,sol[i],true)};
+$('#check').onclick=()=>{reveal=true;render()};
+$('#levels').addEventListener('click',e=>{const b=e.target.closest('[data-l]');if(b){S.lv=+b.dataset.l;save();newGame()}});
+$('#new').onclick=newGame;
+const veil=$('#veil');
+const openSet=()=>{veil.classList.add('on');$('#closeSet').focus()};
+const closeSet=()=>{veil.classList.remove('on');$('#openSet').focus()};
+$('#openSet').onclick=openSet;$('#closeSet').onclick=closeSet;
+veil.addEventListener('click',e=>{if(e.target===veil)closeSet()});
+window.appBack=()=>{if(veil.classList.contains('on')){closeSet();return true}return false};
+$('#sizes').addEventListener('click',e=>{const b=e.target.closest('[data-n]');if(b){S.n=+b.dataset.n;save();newGame()}});
+$('#modes').addEventListener('click',e=>{const b=e.target.closest('[data-m]');if(b){S.mode=b.dataset.m;save();render()}});
+$('#limits').addEventListener('click',e=>{const b=e.target.closest('[data-x]');if(b){S.limit=+b.dataset.x;save();newGame()}});
+$('#chk').onchange=e=>{S.check=e.target.checked;save();render()};
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&veil.classList.contains('on')){closeSet();return}
+  if(veil.classList.contains('on')||done||over||sel<0)return;const r=sel/n|0,c=sel%n;
+  if(/^[1-9]$/.test(e.key)&&+e.key<=n){put(sel,+e.key);e.preventDefault()}
+  else if(e.key==='Backspace'||e.key==='Delete'||e.key==='0'){$('#erase').click();e.preventDefault()}
+  else if(e.key==='m'||e.key==='M'){memo=!memo;render()}
+  else{const mv={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]}[e.key];
+    if(mv){sel=((r+mv[0]+n)%n)*n+(c+mv[1]+n)%n;render();e.preventDefault();
+      const f=document.querySelector(`.c[data-i="${sel}"]`);if(f)f.focus()}}});
+if(!(S.n>=2&&S.n<=9))S.n=4;if(!(S.lv>=0&&S.lv<LV.length))S.lv=1;if(![0,3,4,5,6,7,8,9,10].includes(S.limit))S.limit=0;
+newGame();
+}
+</script>
+</body>
+</html>
