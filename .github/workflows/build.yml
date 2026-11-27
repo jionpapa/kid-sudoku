@@ -1,0 +1,228 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Generate Android project (WebView wrapper around index.html)
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+        run: |
+          mkdir -p app app/src/main app/src/main/java/com/jionpapa/kidsudoku app/src/main/res/drawable app/src/main/res/mipmap-anydpi-v26 app/src/main/res/values app/src/main/assets
+          cat > settings.gradle <<'EOF_KS'
+          pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories { google(); mavenCentral() }
+          }
+          rootProject.name = "KidSudoku"
+          include ':app'
+          EOF_KS
+          cat > build.gradle <<'EOF_KS'
+          plugins { id 'com.android.application' version '8.5.2' apply false }
+          EOF_KS
+          cat > gradle.properties <<'EOF_KS'
+          org.gradle.jvmargs=-Xmx2048m
+          android.useAndroidX=true
+          android.nonTransitiveRClass=true
+          EOF_KS
+          cat > app/build.gradle <<'EOF_KS'
+          plugins { id 'com.android.application' }
+
+          android {
+              namespace 'com.jionpapa.kidsudoku'
+              compileSdk 34
+              defaultConfig {
+                  applicationId 'com.jionpapa.kidsudoku'
+                  minSdk 26
+                  targetSdk 34
+                  versionCode((System.getenv('GITHUB_RUN_NUMBER') ?: '1') as Integer)
+                  versionName "1.${System.getenv('GITHUB_RUN_NUMBER') ?: '0'}"
+              }
+              signingConfigs {
+                  release {
+                      storeFile file('kidsudoku.jks')
+                      storePassword 'kidsudoku'
+                      keyAlias 'kidsudoku'
+                      keyPassword 'kidsudoku'
+                  }
+              }
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                      signingConfig signingConfigs.release
+                  }
+              }
+              lint {
+                  checkReleaseBuilds false
+                  abortOnError false
+              }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+          }
+          EOF_KS
+          cat > app/src/main/AndroidManifest.xml <<'EOF_KS'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application
+                  android:label="꼬마 스도쿠"
+                  android:icon="@mipmap/ic_launcher"
+                  android:roundIcon="@mipmap/ic_launcher"
+                  android:allowBackup="true"
+                  android:theme="@style/AppTheme">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true"
+                      android:screenOrientation="portrait"
+                      android:configChanges="orientation|screenSize|keyboardHidden|uiMode">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF_KS
+          cat > app/src/main/res/values/styles.xml <<'EOF_KS'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="AppTheme" parent="@android:style/Theme.Material.Light.NoActionBar">
+                  <item name="android:windowBackground">@color/sunny</item>
+                  <item name="android:statusBarColor">@color/sunny</item>
+                  <item name="android:navigationBarColor">@color/sunny</item>
+              </style>
+              <color name="sunny">#FFD23F</color>
+              <color name="ink">#2B2140</color>
+          </resources>
+          EOF_KS
+          cat > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml <<'EOF_KS'
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@color/sunny" />
+              <foreground android:drawable="@drawable/ic_launcher_foreground" />
+          </adaptive-icon>
+          EOF_KS
+          cat > app/src/main/res/drawable/ic_launcher_foreground.xml <<'EOF_KS'
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp" android:height="108dp"
+              android:viewportWidth="108" android:viewportHeight="108">
+              <path android:fillColor="#2B2140" android:pathData="M30,28h48a4,4 0,0 1,4 4v44a4,4 0,0 1,-4 4h-48a4,4 0,0 1,-4 -4v-44a4,4 0,0 1,4 -4z"/>
+              <path android:fillColor="#FFFDF6" android:pathData="M31,32h21v21h-21z M56,32h21v21h-21z M31,57h21v19h-21z M56,57h21v19h-21z"/>
+              <path android:fillColor="#EF476F" android:pathData="M41.5,42.5m-7,0a7,7 0,1 1,14 0a7,7 0,1 1,-14 0"/>
+              <path android:fillColor="#118AB2" android:pathData="M60,36h13v13h-13z"/>
+              <path android:fillColor="#F9A620" android:pathData="M41.5,60l8,13h-16z"/>
+              <path android:fillColor="#06A77D" android:pathData="M66.5,59l7.5,7.5l-7.5,7.5l-7.5,-7.5z"/>
+          </vector>
+          EOF_KS
+          cat > app/src/main/java/com/jionpapa/kidsudoku/MainActivity.java <<'EOF_KS'
+          package com.jionpapa.kidsudoku;
+
+          import android.app.Activity;
+          import android.content.res.Configuration;
+          import android.graphics.Color;
+          import android.os.Bundle;
+          import android.view.View;
+          import android.view.Window;
+          import android.webkit.WebSettings;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+
+          public class MainActivity extends Activity {
+              private WebView web;
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  boolean night = (getResources().getConfiguration().uiMode
+                          & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+                  int bg = Color.parseColor(night ? "#1C2042" : "#FFD23F");
+                  Window w = getWindow();
+                  w.setStatusBarColor(bg);
+                  w.setNavigationBarColor(bg);
+                  if (!night) {
+                      w.getDecorView().setSystemUiVisibility(
+                              View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+                  }
+                  web = new WebView(this);
+                  web.setBackgroundColor(bg);
+                  WebSettings s = web.getSettings();
+                  s.setJavaScriptEnabled(true);
+                  s.setDomStorageEnabled(true);
+                  s.setTextZoom(100);
+                  web.setWebViewClient(new WebViewClient());
+                  setContentView(web);
+                  if (savedInstanceState != null) {
+                      web.restoreState(savedInstanceState);
+                  } else {
+                      web.loadUrl("file:///android_asset/index.html");
+                  }
+              }
+
+              @Override
+              protected void onSaveInstanceState(Bundle outState) {
+                  super.onSaveInstanceState(outState);
+                  web.saveState(outState);
+              }
+
+              @Override
+              @SuppressWarnings("deprecation")
+              public void onBackPressed() {
+                  web.evaluateJavascript("window.appBack ? window.appBack() : false", value -> {
+                      if (!"true".equals(value)) {
+                          MainActivity.super.onBackPressed();
+                      }
+                  });
+              }
+          }
+          EOF_KS
+          cat > .gitignore <<'EOF_KS'
+          .gradle/
+          build/
+          local.properties
+          *.iml
+          .idea/
+          EOF_KS
+          if [ -z "$KEYSTORE_B64" ]; then echo "::error::KEYSTORE_B64 비밀값이 없어요. Settings > Secrets and variables > Actions에 추가하세요."; exit 1; fi
+          echo "$KEYSTORE_B64" | base64 -d > app/kidsudoku.jks
+          cp index.html app/src/main/assets/index.html
+
+      - name: Build signed APK
+        run: gradle :app:assembleRelease --no-daemon
+
+      - name: Rename APK
+        run: cp app/build/outputs/apk/release/app-release.apk kid-sudoku.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kid-sudoku-apk
+          path: kid-sudoku.apk
+
+      - name: Publish to Releases (latest)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest -y --cleanup-tag || true
+          gh release create latest kid-sudoku.apk --title "꼬마 스도쿠 APK" --notes "빌드 #${{ github.run_number }} — 휴대폰에서 kid-sudoku.apk를 눌러 내려받아 설치하세요."
